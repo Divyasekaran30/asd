@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Game Show</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-image: url("static/game1.jpg");
+            background-size: cover;
+
+        }
+        #colorText {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .form-container{
+            padding: 10px 10px;
+           
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        
+    <h1>Color Game Show</h1>
+    <div id="colorText">Guess the color of this text!</div>
+    <input type="text" id="userInput" placeholder="Enter the font color name">
+    <button onclick="checkAnswer()">Submit</button>
+    <p id="result"></p>
+    <p id="score">Score: 0</p>
+    <p id="timer">Time left: 60 seconds</p>
+</div>
+
+    <script>
+        const colors = ["red", "green", "yellow", "blue", "purple", "cyan", "white"];
+let timeLeft = 60;
+let timerInterval;
+let textColor;
+let fontColor;
+
+function displayColoredText() {
+    textColor = colors[Math.floor(Math.random() * colors.length)];
+    fontColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    // Ensure the font color and the text color are different
+    while (textColor === fontColor) {
+        fontColor = colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    const colorText = document.getElementById("colorText");
+    colorText.innerHTML = `<span style="color: ${fontColor};">${textColor.charAt(0).toUpperCase() + textColor.slice(1)}</span>`;
+}
+
+function startTimer() {
+    timerInterval = setInterval(function() {
+        timeLeft--;
+        document.getElementById("timer").textContent = "Time left: " + timeLeft + " seconds";
+
+        if (timeLeft === 0) {
+            clearInterval(timerInterval);
+            endGame();
+        }
+    }, 1000);
+}
+
+function checkAnswer() {
+    const userInput = document.getElementById("userInput").value.toLowerCase();
+    const resultDisplay = document.getElementById("result");
+    const scoreDisplay = document.getElementById("score");
+    const score = parseInt(scoreDisplay.textContent.split(":")[1]);
+
+    if (userInput === fontColor) {
+        resultDisplay.textContent = "Correct!";
+        scoreDisplay.textContent = "Score: " + (score + 1);
+    } else {
+        resultDisplay.textContent = "Incorrect! The correct font color was: " + fontColor;
+    }
+
+    setTimeout(function() {
+        resultDisplay.textContent = "";
+        displayColoredText();
+    }, 1500);
+
+    document.getElementById("userInput").value = "";
+}
+
+function endGame() {
+    document.getElementById("userInput").disabled = true;
+    document.getElementById("result").textContent = "Time's up! Game over.";
+
+    // Send the final score to the Flask server
+    fetch('/submit-score', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 'score': parseInt(document.getElementById("score").textContent.split(":")[1]) })
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log(data);  // Log the response from the server
+        // Redirect to new.html after receiving the response
+        window.location.href = '/new';
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+window.onload = function() {
+    displayColoredText();
+    startTimer();
+};
+
+    </script>
+</body>
+</html>
